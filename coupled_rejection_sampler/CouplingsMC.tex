@@ -1,0 +1,314 @@
+\documentclass{beamer}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bbm}
+\usepackage{mathrsfs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usetheme{Metropolis}
+\usecolortheme{Seahorse}
+
+
+\title{Simulations and monte carlo methods}
+\subtitle{The Coupled Rejection Sampler}
+\author{Thibault Tatou Dekou, Maria Abi Rizk, Patryk Wisniewski}
+\institute{ENSAE 2A}
+\date{\today}
+
+\begin{document}
+\maketitle
+\begin{frame}
+\frametitle{Presentation structure}
+\begin{enumerate}
+\item Brief recap on coupling
+\item Validity of Thorisson's algorithm
+\item Alternative to Thorisson and performance comparisons
+\item The curse of dimensionality
+\end{enumerate}
+\end{frame}
+\begin{frame}
+\frametitle{Coupling 101}
+\textbf{Definition:} A \textit{coupling} of random variables $X$ and $Y$ is a construction of a joint distribution for $(X', Y')$ such that $X' \overset{d}{=} X$ and $Y' \overset{d}{=} Y$, preserving their individual distributions.
+\begin{theorem}[Coupling Inequality]
+Let \(\mu\) and \(\nu\) be probability measures on a measurable space \((S, \mathcal{S})\). For any coupling \((X, Y)\) of \(\mu\) and \(\nu\),
+\[
+\|\mu - \nu\|_{\text{TV}} \leq \mathbb{P}[X \neq Y].
+\]
+\end{theorem}
+Useful for proving convergence and limit theorems
+\vspace*{-0.2cm}
+\end{frame}
+\begin{frame}
+\begin{itemize}
+\frametitle{Coupling 102}
+    \item \textbf{Maximal Couplings:} A coupling is maximal if it corresponds to the largest probability of \(\{X = Y\}\) or equivalently the smallest probability of \(\{X \neq Y\}\).
+    
+    \item \textbf{Diagonal Couplings:} A coupling such as P(X=Y)>0. An interesting example, suppose you have two random variables X and Y. In a diagonal coupling, X and Y evolve independently until they happen to take the same value. From that point onward, they remain equal. Often used to bound Markov Chains mixing times. 
+    
+\item \textbf{Optimal Transport:} The idea relates to finding the coupling that minimizes some cost function, often represented through a distance metric on the probability measures.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Validity of Thorisson's / Relation to rejection sampling}
+
+\begin{columns}[T, onlytextwidth]
+
+\begin{minipage}[l]{0.35\textwidth}
+\textbf{Conditions:}
+Algorithm 5 is valid for coupling by rejection-sampling if:
+\begin{enumerate}
+    \item $X \sim p$, $Y \sim q$
+    \item $P(X = Y) > 0$
+    \item A rejection sampling step
+\end{enumerate}
+\end{minipage}
+
+\scalebox{0.6}{ % Begin of scalebox
+\begin{minipage}[r]{1\textwidth} % Begin of minipage; adjust width as needed
+\setcounter{algorithm}{4}
+\begin{algorithm}[H]
+\caption{Modified Thorisson algorithm}
+\begin{algorithmic}[1]
+\Function{ThorissonCoupling}{$p, q, C$}
+\State {\color{blue}Sample $X \sim p$}
+\State {\color{blue}Sample $U \sim U(0,1)$}
+\If{{\color{blue} $U < \min(\frac{q(X)}{p(X)}, C)$}}
+\State {\color{blue}Set $Y = X$}
+\Else
+\State {\color{red}Set $A = 0$}
+\While{{\color{red}$A \neq 1$}}
+\State {\color{red}Sample $U \sim U(0,1)$}
+\State {\color{red}Sample $Z \sim q$}
+\If{{\color{red}$U > \min (1, C\frac{p(Z)}{q(Z)})$}}
+\State {\color{red}Set $A = 1$}
+\State {\color{red}Set $Y = Z$}
+\EndIf
+\EndWhile
+\EndIf
+\State \Return{$X, Y$}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+\end{minipage} % End of minipage
+} % End of scalebox
+
+\end{columns}
+\end{frame}
+\begin{frame}
+\frametitle{Proof $Y \sim q$}
+Since in the first step $X \sim p$, let us show that $Y \sim q$. Suppose $A\subseteq \mathcal{X}$ a measurable subset. We have:
+\begin{align*}
+P(Y\in A) &= P(Y\in A, \mathbf{{step1}}) + P(Y\in A, \mathbf{step2}) \\
+P(Y\in A, \text{step1}) &= \mathbb{E}[1(Y\in A, \text{step1})] \\
+&= \int_{A} \int_{0}^{1} \mathbbm{1}(u < \min (\frac{q(x)}{p(x)}, C)) \cdot \mathbbm{1}_{[0,1]}(u) \cdot p(x) du dx \\
+&= \int_{A} \int_{0}^{1} \mathbbm{1}(0 \leq u < \min (\min (\frac{q(x)}{p(x)}, C), 1)) p(x) du dx \\
+&= \int_{A} \left( \int_0^{\min(\min(\frac{q(x)}{p(x)}, C),1)} du \right) p(x)dx \\
+&= \int_{A} \min(q(x), Cp(x)) dx\\
+\implies
+P(\mathbf{step1})&= \int_{\mathcal{X}} \min(q(x), Cp(x))dx
+\end{align*}
+\end{frame}
+\begin{frame}
+
+\begin{equation}
+P(Y \in A, \mathbf{step2}) = \int_{A} q(x) - \min\{q(x), Cp(x)\} \, dx
+\end{equation}
+
+For (1) to hold it is necessary that:
+\[
+\int_{A} q(x) - \min\{q(x), Cp(x)\} \, dx = P(Y \in A|\mathbf{step2}) P(\mathbf{step2})
+\]
+
+We know that,
+\[
+P(\mathbf{step2}) = 1 - P(\mathbf{step1}) = 1 - \int_{x} \min\{q(x), Cp(x)\} \, dx
+\]
+
+Thus, given $Y | \text{step2}$ has density:
+$$
+\tilde{q}(x) = \frac{q(x) - \min\{q(x), Cp(x)\}}{1 - \int_{x} \min\{q(s), Cp(s)\} \, ds}
+$$
+
+It is then sufficient to note that step 2 is a standard case of acceptance-rejection, where we wish to simulate $\tilde{q}(x)$ using the proposal law $q(x)$ to conclude that $Y \sim q$.
+\end{frame}
+\begin{frame}
+Rewriting of step 2 of algorithm 5:  Note that,
+\[
+\frac{\tilde{q}(z)}{q(z)} = \frac{1 - \min\{1, \frac{Cp(z)}{q(z)}\}}{1 - \int_{x} \min\{q(s), Cp(s)\} \, ds} \leq \frac{1}{1 - \int_{x} \min\{q(s), Cp(s)\} \, ds} = M
+\]
+Thus,
+\[
+1 - \min\{1, \frac{Cp(z)}{q(z)}\} = \frac{\tilde{q}(z)}{Mq(z)}
+\]
+and instructions 9 to 13 can be rewritten:
+\begin{itemize}
+\item Sample $Z \sim q$
+\item Sample $V \sim \text{Unif}(0,1)$ with $V = 1-U$ ($U$ is the uniform law from the initial version of the algorithm)
+\item If $V < 1 - \min\{1, \frac{Cp(z)}{q(z)}\} = \frac{\tilde{q}(z)}{Mq(z)}$ then
+\begin{itemize}
+    \item Set $A=1$
+    \item Set $Y=Z$
+\end{itemize}
+\end{itemize}
+One can thus clearly see the instructions listed in the acceptance-rejection method.
+Finally, it must be noted that:
+\[
+P(X = Y) = P(\mathbf{step1}) = \int_{x} \min\{q(x), Cp(x)\} \, dx > 0
+\]
+\end{frame}
+\begin{frame}
+\frametitle{Variance behaviour - Thorisson's algorithm}
+To assess execution time, remark that:
+\begin{itemize}
+        \item Step 1 contains 3 essential instructions: Draw from $p$, uniform draw, and conditional instruction on $U$.
+        \item Similarly at step 2 each "while" iteration has three actions: Draw from $q$, uniform draw, conditional on $V$.
+\end{itemize} 
+These are treated as one block, executed $t$ times.
+
+Remember acceptance probability at step 2:
+$$ P\left( V < 1 - \min\left\{1, \frac{Cp(Z)}{q(Z)}\right\}\right) = 1 - \int \min\{q(x), Cp(x)\} \, dx $$
+
+Hence, $t \sim \text{geom}(a)$ where:
+$ a = 1 - \int \min\{q(x), Cp(x)\} \, dx $
+Therefore, the average number of blocks executed at step 2 is:
+\[
+P(\text{step2}).E[t] = \frac{1-\int_{x} \min\{q(x), Cp(x)\} \, dx}{1 - \int_{x} \min\{q(s), Cp(s)\} \, ds} = 1
+\]
+\end{frame}
+\begin{frame}
+
+\begin{itemize}
+    \item On average, two instruction blocks per run, regardless of $p$ and $q$.
+    \item Variance of Runtime $W$ considers average of conditional variances.
+    \item With step 1 deterministic, step 2's variance dominates:
+\end{itemize}
+\begin{align*}
+W &= P(\mathbf{step2}).\text{Var}[t] \\
+&= \left(1 - \int_{x} \min\{q(x), Cp(x)\} \, dx\right)\left(\frac{1-a}{a^2}\right) \\
+&= \frac{1}{1 - a} = \frac{\int_{x} \min\{q(x), Cp(x)\} \, dx}{1-\int_{x} \min\{q(x), Cp(x)\} \, dx}
+\end{align*}
+
+As $q$ approaches $p$, variance $W$:
+$$ W = \frac{C}{1 - C} $$
+If $C=1$, algorithm 5's execution time variance explodes.
+\end{frame}
+\begin{frame}
+\frametitle{Empirical behavior Thorisson}
+The case where C=1 is the original Thorisson algorithm
+\begin{center}
+\includegraphics[width=0.9\textwidth]{plots/plot7.png}
+\end{center}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Thorisson alternatives}
+The authors propose the following alternative to Thorisson
+\vspace*{-0.1cm}
+\scalebox{0.75}{ % Begin of scalebox
+\begin{minipage}[c]{1\textwidth} % Begin of minipage; adjust width as needed
+\setcounter{algorithm}{0}
+\begin{algorithm}[H]
+\caption{Rejection Coupling}
+\begin{algorithmic}[1]
+\Function{RejectionCoupling}{$\Gamma$, $p$, $q$}
+\Comment{Supposing $\Gamma \sim p \otimes q$ is a coupling of $\hat{p}$ and $\hat{q}$.}
+\State Set $\Delta_x = 0$ and $\Delta_y = 0$ \Comment{Acceptance flags}
+\While{$\Delta_x = 0$ and $\Delta_y = 0$}
+    \State Sample $X_1, Y_1 \sim \Gamma$, $U \sim \mathcal{U}(0,1)$
+    \If{$U < \frac{p(X_1)}{M(p,q)\hat{p}(X_1)}$}
+        \State set $\Delta_x = 1$
+    \EndIf
+    \If{$U < \frac{q(Y_1)}{M(p,q)\hat{q}(Y_1)}$}
+        \State set $\Delta_y = 1$
+    \EndIf
+\EndWhile
+\State Sample $X_2, Y_2$ from $p \otimes q$
+\State \Return $X = \Delta_x X_1 + (1 - \Delta_x) X_2$, $Y = \Delta_y Y_1 + (1 - \Delta_y) Y_2$
+\EndFunction	
+\end{algorithmic}
+\end{algorithm}
+\end{minipage} % End of minipage
+}
+\end{frame}
+\begin{frame}
+\phantom{t}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{plots/plot1.png}
+\end{center}
+\end{frame}
+\begin{frame}
+\frametitle{Performance comparison}
+Using the same setup as section 5.1 of the paper we can compare relative performances of Thorisson and the author's approach.
+\vspace*{0.5cm}
+\begin{columns}[onlytextwidth, t] % 
+        \column{.49\linewidth} 
+            \includegraphics[width=\textwidth]{plots/plot2.png}
+        \column{.49\linewidth}
+            \includegraphics[width=\textwidth]{plots/plot9.png}
+\end{columns} 
+\end{frame}
+
+\begin{frame}
+\phantom{t}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{plots/plot3.png}
+\end{center}
+\end{frame}
+
+\begin{frame}
+The runtime evolution follows a similar trajectory to the author's algorithm
+\begin{center}
+\includegraphics[width=0.8\textwidth]{plots/plot10.png}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{The curse of dimensionality 1/2}
+Algorithm 1 suffer much more than Thorisson from the curse of dimensionality
+\begin{center}
+\includegraphics[width=0.8\textwidth]{plots/plot11.png}
+\end{center}
+\end{frame}
+\begin{frame}
+\frametitle{The curse of dimensionality 2/2}
+\begin{center}
+\includegraphics[width=0.8\textwidth]{plots/plot12.png}
+\end{center}
+\end{frame}
+\begin{frame}
+\frametitle{A different perspective on coupling probability}
+\begin{center}
+\includegraphics[width=1\textwidth]{plots/plot6.png}
+\end{center}
+\end{frame}
+\begin{frame}
+\begin{itemize}
+\item It is possible to view the coupling probability through the lens of successful couplings (X=Y)
+\item Running the algorithm until a coupling and then counting the number of trials seems to follow a geometric distribution
+\item This can be tested through a $\chi^2$ test
+\end{itemize}
+\begin{table}
+\centering
+\caption{Chi-Test Adequation and Estimated Probabilities of Success}
+\begin{tabular}{ccc}
+\hline
+\textbf{dim} & \textbf{pval} & \textbf{p} \\
+\hline
+1 & 0.7542079 & 0.6441224 \\
+2 & 0.8969453 & 0.4889976 \\
+3 & 0.9405786 & 0.3325021 \\
+4 & 0.6310333 & 0.2518892 \\
+5 & 0.2792477 & 0.1873536 \\
+6 & 0.6644824 & 0.1403016 \\
+\hline
+\end{tabular}
+\end{table}
+\end{frame}
+\end{document}
