@@ -2,27 +2,20 @@ from scripts.all_functions import *
 
 #EXPERIMENT 3
 def coupled_mvns_with_trials(key, m, chol_P, mu, chol_Sig, max_trials=100, N=1, chol_Q=None):
-    # Initialization of counters for the total number of trials and sample sizes
     total_trials = 0
     total_samples = 0
     
-    # Loop while the total number of trials is less than max_trials
     while total_trials < max_trials:
-        # Splitting the JAX key for random number generation
         key, subkey = jax.random.split(key)
         
-        # Call the coupled_mvns function to generate samples
         X, Y, is_coupled, n_trials = coupled_mvns(subkey, m, chol_P, mu, chol_Sig, N, chol_Q)
         
-        # Update counters with the number of trials and samples generated in this iteration
         total_trials += n_trials
         total_samples += N
         
-        # If the variables are coupled or if the total number of trials reaches max_trials, return the samples and the coupling indicator
         if is_coupled or total_trials >= max_trials:
             return X, Y, is_coupled, total_trials
     
-    # If the total number of trials exceeds max_trials without the variables being coupled, return the samples and the coupling indicator
     return X, Y, is_coupled, total_trials
 
 
@@ -59,8 +52,8 @@ def run_mvn_experiments_with_increasing_dimensions(max_dim=6, N=400):
 
             # Store results for this run
             sample_times.append(sample_end)
-            is_coupled.append(bool(coupled))  # Convert JAX bool to Python bool
-            n_trials.append(int(trials))      # Convert JAX int to Python int
+            is_coupled.append(bool(coupled)) 
+            n_trials.append(int(trials))     
 
         # Compute overall runtime for this dimension
         total_runtime = time.time() - start_time

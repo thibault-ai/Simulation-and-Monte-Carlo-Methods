@@ -2,11 +2,8 @@ from scripts.all_functions import *
 
 #EXPERIMENT 1 -----------------------------------------------------------------
 def experiment():
-    """
-    Run the simulation.
-    """
-    # Initializing the JAX key for random number generation
-    JAX_KEY = jax.random.PRNGKey(0)
+    
+    JAX_KEY = jax.random.PRNGKey(15316)
     
     # Simulation parameters
     mu = 6.0
@@ -50,14 +47,11 @@ def experiment():
         pxy = np.mean(acc)
         pxy_list[n] = pxy, true_pxy
     
-    # Saving the results to an npz file
     np.savez("results/gauss_tails/gauss_tails.npz", x_samples=x_samples, y_samples=y_samples, pxy_list=pxy_list, M=M, etas=mu + DELTAS, mu=mu, runtimes=runtimes)
     
-    # Returning the samples and results
     return x_samples, y_samples, pxy_list, runtimes
 
 def to_plot():
-    # Loading data from the npz file
     data = np.load("results/gauss_tails/gauss_tails.npz")
     
     # Converting the data to DataFrame and saving to feather files
