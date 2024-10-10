@@ -3,7 +3,7 @@ This is a course project of the course « Simulation and Monte Carlo Methods » 
 
 # The Coupled Rejection Sampler
 
-This repository contains the codes of the experimental results presented in the paper "CouplingMC" by me and two Classmates. 
+This repository contains the codes of the experimental results presented in the paper "CouplingsMC" by me and two Classmates. 
 This project start from the works of Adrien Corenflos and Simo Särkkä [1]. 
 
 Firstly, we implemented the approach proposed by Adrien Corenflos and Simo Särkkä [1] in their paper and we compared it with the simpler approach known as Thoriston's algorithm.
